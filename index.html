@@ -3,46 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Collapsible Header v2 — iOS-safe (no height animation)</title>
+<title>Shrinking Header — fixed + font/padding (w3schools pattern)</title>
 <style>
-  /* Root cause fix #1: NO ancestor of <header> may scroll.
-     html & body stay overflow:visible; no overflow-x:hidden anywhere. */
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  body {
-    background: #f4f4f5;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  }
+  body { background: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 
-  /* -------- Header: sticky, shrinks via MAX-HEIGHT (not height) -------- */
-  header {
-    position: sticky;
-    top: 0;                 /* required for sticky to fire */
-    z-index: 10;
+  /* FIXED (not sticky) — sits on top of the page, always robust. */
+  #header {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
     background: #2563eb;
     color: #fff;
-    /* Safe area for iOS notch/home indicator */
-    padding: calc(16px + env(safe-area-inset-top)) 24px calc(16px + env(safe-area-inset-bottom));
-    /* Collapse is driven by max-height + overflow:hidden.
-       Animating max-height is compositor-friendly; animating HEIGHT is not
-       reliable on iOS Safari. max-height gives us the shrink in-place. */
-    overflow: hidden;
-    max-height: 220px;
-    transition: max-height .3s ease;
+    text-align: center;
+    /* TALL state: height comes from padding + font-size, NOT a height property. */
+    padding: 220px 20px;
+    font-size: 90px;
+    font-weight: bold;
+    transition: 0.4s;   /* animates font-size + padding on scroll */
+    z-index: 100;
   }
 
-  header .title   { font-size: 28px; font-weight: 700; }
-  header .tagline { font-size: 16px; color: #dbeafe; margin-top: 4px; }
+  #header .sub { font-size: 22px; font-weight: normal; color: #dbeafe; margin-top: 12px; }
 
-  header.scrolled {
-    max-height: 56px;        /* slim bar when scrolled */
+  /* The JS shrinks font-size (and padding) when scrolled past 50px. */
+  #header.shrunk {
+    padding: 12px 20px;
+    font-size: 30px;
   }
-  header.scrolled .title   { font-size: 20px; white-space: nowrap; }
-  header.scrolled .tagline { display: none; }
+  #header.shrunk .sub { display: none; }
 
-  /* -------- Content -------- */
-  main { max-width: 640px; margin: 0 auto; padding: 24px 20px 40px; }
+  /* Content offset so the fixed header doesn't cover text. Tall header → big top pad. */
+  main { max-width: 640px; margin: 0 auto; padding: 560px 20px 40px; }
   .card { background:#fff; border:1px solid #e4e4e7; border-radius:10px; padding:22px; margin-bottom:16px; }
   .card h3 { margin-bottom:8px; }
   .card p { color:#52525b; line-height:1.5; }
@@ -50,36 +44,33 @@
 </head>
 <body>
 
-<header id="hd">
-  <div class="title">My Shrinking Header</div>
-  <div class="tagline">This tagline hides — header slims down — when you scroll</div>
-</header>
+<div id="header">
+  My Header
+  <div class="sub">Tagline hides and header shrinks when you scroll &gt; 50px</div>
+</div>
 
 <main>
-  <div class="card"><h3>Scroll down 👇</h3><p>Header sticks to the top and shrinks to a slim bar. Scroll back up and it grows again. Works on iOS Safari because it animates <code>max-height</code>, not <code>height</code>.</p></div>
-  <div class="card"><h3>What changed vs. v1</h3><p>v1 animated <code>height</code> — that re-lays-out every frame and breaks on mobile Safari. v2 animates <code>max-height</code> with <code>overflow:hidden</code>, which the browser can composite smoothly.</p></div>
-  <div class="card"><h3>Root-cause check</h3><p>No <code>height:100%</code>, no flex wrapper, no <code>overflow-x</code> on any header ancestor — sticky fires reliably.</p></div>
-  <div class="card"><h3>Content</h3><p>Filler.</p></div>
-  <div class="card"><h3>Content</h3><p>More filler to make the page scroll.</p></div>
-  <div class="card"><h3>Content</h3><p>And more.</p></div>
+  <div class="card"><h3>Scroll down 👇</h3><p>At rest the header is <b>~500px tall</b>. Scroll down and it shrinks to a slim bar (ther font + padding collapse). Scroll to top and it grows back.</p></div>
+  <div class="card"><h3>Why this works</h3><p><code>position: fixed</code> (not sticky) + animating <code>font-size</code> and <code>padding</code> (not <code>height</code>). That's the w3schools pattern — the one axis that's reliable across MacBook Chrome and iOS Safari.</p></div>
+  <div class="card"><h3>Content</h3><p>Filler so the page scrolls.</p></div>
+  <div class="card"><h3>Content</h3><p>More filler.</p></div>
+  <div class="card"><h3>Content</h3><p>Keep going.</p></div>
   <div class="card"><h3>Content</h3><p>Still scrolling.</p></div>
-  <div class="card"><h3>Content</h3><p>Almost done.</p></div>
+  <div class="card"><h3>Content</h3><p>Almost the end.</p></div>
   <div class="card"><h3>Content</h3><p>The end.</p></div>
 </main>
 
 <script>
-  var header = document.getElementById('hd');
-  // Throttled scroll listener toggles a class. No height math on scroll.
-  var ticking = false;
-  window.addEventListener('scroll', function () {
-    if (!ticking) {
-      window.requestAnimationFrame(function () {
-        header.classList.toggle('scrolled', window.scrollY > 8);
-        ticking = false;
-      });
-      ticking = true;
+  // Simple, direct — same as w3schools. No rAF, no class-juggling tricks.
+  window.onscroll = function () {
+    var scroll = document.body.scrollTop || document.documentElement.scrollTop;
+    var header = document.getElementById('header');
+    if (scroll > 50) {
+      header.classList.add('shrunk');
+    } else {
+      header.classList.remove('shrunk');
     }
-  }, { passive: true });
+  };
 </script>
 
 </body>
